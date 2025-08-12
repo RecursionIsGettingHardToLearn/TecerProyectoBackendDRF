@@ -74,8 +74,8 @@ class LogoutSerializer(serializers.Serializer):
 class LogoutView(APIView):
 
     permission_classes = [IsAuthenticated]
+
     def post(self, request):
-        print('hola estamo salien dseccion')
       
         # invalidamos el refresh token
         serializer = LogoutSerializer(data=request.data)

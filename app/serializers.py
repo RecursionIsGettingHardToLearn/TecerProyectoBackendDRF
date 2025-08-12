@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 from django.db.models import F 
 from .models import (
     Producto, Inventario, Rol, CustomUser,
@@ -31,16 +32,27 @@ class CustomUserReadSerializer(serializers.ModelSerializer):
 #write prar crear/actualizar (rol id+password write-ony))
 class CustomUserWriteSerializer(serializers.ModelSerializer):
     rol=serializers.PrimaryKeyRelatedField(queryset=Rol.objects.all(),allow_null=True,required=False)
+    username = serializers.CharField(
+        max_length=150,
+        validators=[
+            UniqueValidator(
+                queryset=CustomUser.objects.all(),
+                message="Ya existe un usuario con este nombre de usuario."
+            )
+        ]
+    )
     password=serializers.CharField(write_only=True,required=True,min_length=6)
     class Meta:
         model=CustomUser
         fields=['id','username','password','rol']
+
     def create(self, validated_data):
         pwd=validated_data.pop('password')
         user=CustomUser(**validated_data)
         user.set_password(pwd)
         user.save()
         return user
+    
     def update(self, instance, validated_data):
         pwd=validated_data.pop('password',None)
         for k,v in validated_data.items():
