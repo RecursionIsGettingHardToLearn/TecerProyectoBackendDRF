@@ -13,6 +13,6 @@ class IsCliente(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user and request.user.rol.nombre == 'Cliente'
 
-class IsCliente(permissions.BasePermission):
+class IsCajero(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user and request.user.rol.nombre == 'Cajero'        

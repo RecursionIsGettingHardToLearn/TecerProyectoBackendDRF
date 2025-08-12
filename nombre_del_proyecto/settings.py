@@ -146,7 +146,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 #0F BEGIN
 SIMPLE_JWT = {
     # Tiempo de vida del token de acceso: 30 minutos
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
 
     # Tiempo de vida del token de refresh: 1 día
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),

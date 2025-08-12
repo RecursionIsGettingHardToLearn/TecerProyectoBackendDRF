@@ -189,7 +189,6 @@ class PedidoSerializer(serializers.ModelSerializer):
             # (Opcional) recalcular total del pedido en el servidor:
             # pedido.total = sum(d.subtotal for d in pedido.detallepedidos.all())
             # pedido.save(update_fields=['total'])
-
             return pedido
 
 class FacturaSerializer(serializers.ModelSerializer):

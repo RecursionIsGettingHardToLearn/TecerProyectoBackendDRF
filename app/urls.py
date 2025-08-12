@@ -9,7 +9,7 @@ from .views import (
     FacturaViewSet, ReporteViewSet,
     BitacoraViewSet, DetalleBitacoraViewSet
 )
-from app.autenticacion.auth import MyTokenObtainPairView,LogoutView,PasswordResetRequestView,PasswordResetConfirmView
+from app.autenticacion.auth import MyTokenObtainPairView,LogoutView
 
 router = DefaultRouter()
 router.register(r"productos", ProductoViewSet)
@@ -30,6 +30,4 @@ urlpatterns = [
     path('token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('logout/', LogoutView.as_view(), name='auth_logout'),
-    path('password-reset/', PasswordResetRequestView.as_view(), name='password_reset'),
-    path('password-reset-confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
 ]

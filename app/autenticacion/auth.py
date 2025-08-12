@@ -26,32 +26,7 @@ def _get_client_ip(request):
     if xff:
         return xff.split(',')[0].strip()
     return request.META.get('REMOTE_ADDR')
-#Serializadores
-class PasswordResetRequestSerializer(serializers.Serializer):
-    email = serializers.EmailField()
 
-    def validate_email(self, value):
-        if not User.objects.filter(email=value).exists():
-            raise serializers.ValidationError('No user with this email')
-        return value
-
-class SetNewPasswordSerializer(serializers.Serializer):
-    password = serializers.CharField(min_length=6, write_only=True)
-    token = serializers.CharField(write_only=True)
-    uid = serializers.CharField(write_only=True)
-
-    def validate(self, attrs):
-        try:
-            uid = force_str(urlsafe_base64_decode(attrs['uid']))
-            user = User.objects.get(pk=uid)
-        except Exception:
-            raise serializers.ValidationError('Invalid UID')
-        token = attrs['token']
-        if not PasswordResetTokenGenerator().check_token(user, token):
-            raise serializers.ValidationError('Invalid or expired token')
-        user.set_password(attrs['password'])
-        user.save()
-        return attrs
 
 class LogoutSerializer(serializers.Serializer):
     refresh = serializers.CharField()
@@ -66,17 +41,16 @@ class LogoutSerializer(serializers.Serializer):
 
 """
 {
-  "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc1NDU3ODEwNCwiaWF0IjoxNzU0NDkxNzA0LCJqdGkiOiI3Y2E2NTcyNzcxODk0NTJjYmIwYWU1MjIyYWVlMmJjZiIsInVzZXJfaWQiOiIxIn0.oc6d4l1RoPzdfJSQhTfij1In4afW5qiDz2xKb-glTW0",
-  "password": "angelica2025"
+  "refresh": "...",
+  "password": "..."
 }
 
 """
 class LogoutView(APIView):
 
     permission_classes = [IsAuthenticated]
-
     def post(self, request):
-      
+    
         # invalidamos el refresh token
         serializer = LogoutSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -94,49 +68,11 @@ class LogoutView(APIView):
 
         return Response(status=status.HTTP_204_NO_CONTENT)
     
-class PasswordResetRequestView(APIView):
-    permission_classes = [AllowAny]
 
-    def post(self, request):
-        serializer = PasswordResetRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = User.objects.get(email=serializer.validated_data['email'])
-        uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
-        token = PasswordResetTokenGenerator().make_token(user)
-        reset_url = f"{settings.FRONTEND_URL}/password-reset-confirm/{uidb64}/{token}/"
-        # Aquí tu lógica de envío de correo electrónico con reset_url
-        return Response({'message': 'Reset link sent'}, status=status.HTTP_200_OK)
-
-class PasswordResetConfirmView(APIView):
-    permission_classes = [AllowAny]
-    def post(self, request):
-        serializer = SetNewPasswordSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        return Response({'message': 'Password has been reset.'}, status=status.HTTP_200_OK)
-
-class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
-    def validate(self, attrs):
-        try:
-            data = super().validate(attrs)  # valida credenciales
-        except Exception as e:
-            # Unifica mensaje de error a tu gusto
-            raise serializers.ValidationError('Credenciales inválidas.') from e
-
-        # (Opcional) agrega info del usuario al payload que devolverás al FE
-        data['user'] = {
-            'id': self.user.id,
-            'username': self.user.username,
-            'rol': getattr(getattr(self.user, 'rol', None), 'nombre', None),
-        }
-        return data
-
-class MyTokenObtainPairView(TokenObtainPairView):
-    serializer_class = MyTokenObtainPairSerializer   # ← usa el tuyo
-
+class MyTokenObtainPairView(TokenObtainPairView): 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
         user = serializer.user  # ← ESTE es el usuario autenticado
 
         # IP (X-Forwarded-For si hay proxy; si no, REMOTE_ADDR)
