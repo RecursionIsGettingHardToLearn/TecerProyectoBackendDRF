@@ -157,7 +157,8 @@ class PedidoSerializer(serializers.ModelSerializer):
 
             if insuficientes:
                 raise serializers.ValidationError({
-                    'detallepedidos': 'Stock insuficiente para uno o más productos.',
+                    ''
+                    '': 'Stock insuficiente para uno o más productos.',
                     'faltantes': insuficientes
                 })
 
@@ -210,3 +211,47 @@ class DetalleBitacoraSerializer(serializers.ModelSerializer):
     class Meta:
         model = DetalleBitacora
         fields = '__all__'
+# serializers.py
+
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    new_password = serializers.CharField(write_only=True, min_length=6)
+    confirm_new_password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        request = self.context["request"]
+        target_user = self.context["user"]          # usuario al que se le cambia la contraseña
+        current = attrs.get("current_password") or ""
+        new = attrs["new_password"]
+        confirm = attrs["confirm_new_password"]
+
+        if new != confirm:
+            raise serializers.ValidationError({"confirm_new_password": "Las contraseñas no coinciden."})
+
+        # si es el/la mism@, debe enviar y validar la contraseña actual
+        is_self = request.user.pk == target_user.pk
+        is_admin = getattr(request.user, "is_superuser", False)
+
+        if is_self and not current:
+            raise serializers.ValidationError({"current_password": "Obligatoria para cambiar tu propia contraseña."})
+
+        if is_self and not target_user.check_password(current):
+            raise serializers.ValidationError({"current_password": "No coincide con tu contraseña actual."})
+
+        if target_user.check_password(new):
+            raise serializers.ValidationError({"new_password": "La nueva contraseña no puede ser igual a la actual."})
+
+        # si no es self, debe ser admin
+        if not is_self and not is_admin:
+            raise serializers.ValidationError({"non_field_errors": "No tienes permiso para cambiar esta contraseña."})
+
+        return attrs
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.exceptions import AuthenticationFailed
+
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        try:
+            return super().validate(attrs)
+        except AuthenticationFailed:
+            raise AuthenticationFailed("Usuario o contraseña incorrectos")

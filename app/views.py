@@ -23,7 +23,7 @@ from .serializers import (
     CustomUserWriteSerializer,CustomUserReadSerializer, VentaSerializer, DetalleVentaSerializer,
     PedidoSerializer, DetallePedidoSerializer,
     FacturaSerializer, ReporteSerializer,
-    BitacoraSerializer, DetalleBitacoraSerializer
+    BitacoraSerializer, DetalleBitacoraSerializer,ChangePasswordSerializer
 )
 from .models import Bitacora,DetalleBitacora
 #permissions
@@ -171,7 +171,29 @@ class CustomUserViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
         headers = self.get_success_headers(ser.data)
         return Response(ser.data, status=status.HTTP_201_CREATED, headers=headers)
 
+     # ------ NUEVO: solo cambio de contraseña ------
+    @action(
+        detail=True,
+        methods=['post'],
+        url_path='set-password',
+        permission_classes=[IsAuthenticated]  # relajo aquí; el control fino lo hace el serializer
+    )
+    def set_password(self, request, pk=None):
+        target = self.get_object()  # usuario objetivo
+        ser = ChangePasswordSerializer(data=request.data, context={"request": request, "user": target})
+        ser.is_valid(raise_exception=True)
 
+        # aplicar cambio
+        target.set_password(ser.validated_data["new_password"])
+        target.save(update_fields=["password"])
+
+        # auditar en DetalleBitacora
+        accion = "CAMBIAR_PASSWORD" if request.user.pk == target.pk else "RESET_PASSWORD_ADMIN"
+        # usa el mixin para mantener consistencia de tabla (db_table de CustomUser es 'customuser')
+        self._log(request, accion, self._tabla())
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    # ----------------------------------------------
 
 class VentaViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
     queryset = Venta.objects.all()

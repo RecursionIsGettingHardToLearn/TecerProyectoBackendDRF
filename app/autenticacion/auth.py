@@ -18,6 +18,7 @@ from django.utils.encoding import force_str, force_bytes
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from ..models import Bitacora
+from ..serializers import MyTokenObtainPairSerializer
 from django.utils import timezone
 User = get_user_model()
 def _get_client_ip(request):
@@ -70,6 +71,7 @@ class LogoutView(APIView):
     
 
 class MyTokenObtainPairView(TokenObtainPairView): 
+    serializer_class = MyTokenObtainPairSerializer
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
