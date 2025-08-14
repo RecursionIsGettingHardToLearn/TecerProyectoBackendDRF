@@ -18,7 +18,6 @@ from django.utils.encoding import force_str, force_bytes
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from ..models import Bitacora
-from ..serializers import MyTokenObtainPairSerializer
 from django.utils import timezone
 User = get_user_model()
 def _get_client_ip(request):
@@ -70,26 +69,3 @@ class LogoutView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
     
 
-class MyTokenObtainPairView(TokenObtainPairView): 
-    serializer_class = MyTokenObtainPairSerializer
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.user  # ← ESTE es el usuario autenticado
-
-        # IP (X-Forwarded-For si hay proxy; si no, REMOTE_ADDR)
-        xff = request.META.get('HTTP_X_FORWARDED_FOR')
-        ip = (xff.split(',')[0].strip() if xff else request.META.get('REMOTE_ADDR')) or None
-
-        # User-Agent como "device" (o None si vacío)
-        device = request.META.get('HTTP_USER_AGENT') or None
-
-        # Registrar login en bitácora
-        Bitacora.objects.create(
-            usuario=user,
-            login=timezone.now(),
-            ip=ip,
-            device=device
-        )
-
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)

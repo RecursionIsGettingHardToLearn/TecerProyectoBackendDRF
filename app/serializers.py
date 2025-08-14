@@ -1,11 +1,14 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from django.db.models import F 
+
 from .models import (
     Producto, Inventario, Rol, CustomUser,
     Venta, DetalleVenta, Pedido, DetallePedido,
     Factura, Reporte, Bitacora, DetalleBitacora
 )
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework.exceptions import AuthenticationFailed
 
 class ProductoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -246,8 +249,6 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError({"non_field_errors": "No tienes permiso para cambiar esta contraseña."})
 
         return attrs
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from rest_framework_simplejwt.exceptions import AuthenticationFailed
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):

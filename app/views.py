@@ -6,7 +6,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework import viewsets,status
 from  django.utils import timezone
 
-
+from rest_framework.exceptions import AuthenticationFailed
 # Create your views here.
 # views.py
 import logging
@@ -23,7 +23,7 @@ from .serializers import (
     CustomUserWriteSerializer,CustomUserReadSerializer, VentaSerializer, DetalleVentaSerializer,
     PedidoSerializer, DetallePedidoSerializer,
     FacturaSerializer, ReporteSerializer,
-    BitacoraSerializer, DetalleBitacoraSerializer,ChangePasswordSerializer
+    BitacoraSerializer, DetalleBitacoraSerializer,MyTokenObtainPairSerializer
 )
 from .models import Bitacora,DetalleBitacora
 #permissions
@@ -31,7 +31,7 @@ from .permissions import IsAdmin, IsRepartidor, IsCliente
 from rest_framework.permissions import AllowAny, IsAuthenticated
 # === Auditoría de acciones en Bitácora ===
 from django.utils import timezone
-
+from rest_framework_simplejwt.views import TokenObtainPairView
 class BitacoraLoggerMixin:
     """
     Mixin para registrar automáticamente acciones del actor (request.user)
@@ -129,9 +129,9 @@ class CustomUserViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
         return Response(serializer.data)
     def get_serializer_class(self):
         if self.action in ['create','update','partial_update']:
+        
             return  CustomUserWriteSerializer
         return CustomUserReadSerializer
-    
     def create(self, request, *args, **kwargs):
         ser = self.get_serializer(data=request.data)
         try:
@@ -170,30 +170,12 @@ class CustomUserViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
         
         headers = self.get_success_headers(ser.data)
         return Response(ser.data, status=status.HTTP_201_CREATED, headers=headers)
+    def post(self, request):
+        serializer = self.get_serializer(request.user)
+        serializer.is_valid(raise_exception=True)
+        #--registro en tbitacora
+        #quiero registar a la tabla DetalleBitacora
 
-     # ------ NUEVO: solo cambio de contraseña ------
-    @action(
-        detail=True,
-        methods=['post'],
-        url_path='set-password',
-        permission_classes=[IsAuthenticated]  # relajo aquí; el control fino lo hace el serializer
-    )
-    def set_password(self, request, pk=None):
-        target = self.get_object()  # usuario objetivo
-        ser = ChangePasswordSerializer(data=request.data, context={"request": request, "user": target})
-        ser.is_valid(raise_exception=True)
-
-        # aplicar cambio
-        target.set_password(ser.validated_data["new_password"])
-        target.save(update_fields=["password"])
-
-        # auditar en DetalleBitacora
-        accion = "CAMBIAR_PASSWORD" if request.user.pk == target.pk else "RESET_PASSWORD_ADMIN"
-        # usa el mixin para mantener consistencia de tabla (db_table de CustomUser es 'customuser')
-        self._log(request, accion, self._tabla())
-
-        return Response(status=status.HTTP_204_NO_CONTENT)
-    # ----------------------------------------------
 
 class VentaViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
     queryset = Venta.objects.all()
@@ -228,3 +210,26 @@ class DetalleBitacoraViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
     serializer_class = DetalleBitacoraSerializer
 
 
+class MyTokenObtainPairView(TokenObtainPairView): 
+    serializer_class = MyTokenObtainPairSerializer
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.user  # ← ESTE es el usuario autenticado
+
+        # IP (X-Forwarded-For si hay proxy; si no, REMOTE_ADDR)
+        xff = request.META.get('HTTP_X_FORWARDED_FOR')
+        ip = (xff.split(',')[0].strip() if xff else request.META.get('REMOTE_ADDR')) or None
+
+        # User-Agent como "device" (o None si vacío)
+        device = request.META.get('HTTP_USER_AGENT') or None
+
+        # Registrar login en bitácora
+        Bitacora.objects.create(
+            usuario=user,
+            login=timezone.now(),
+            ip=ip,
+            device=device
+        )
+
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)

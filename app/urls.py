@@ -2,15 +2,15 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
+from django.conf.urls import handler404
 from .views import (
     ProductoViewSet, InventarioViewSet, RolViewSet,
     CustomUserViewSet, VentaViewSet, DetalleVentaViewSet,
     PedidoViewSet, DetallePedidoViewSet,
     FacturaViewSet, ReporteViewSet,
-    BitacoraViewSet, DetalleBitacoraViewSet
+    BitacoraViewSet, DetalleBitacoraViewSet,MyTokenObtainPairView
 )
-from app.autenticacion.auth import MyTokenObtainPairView,LogoutView
-
+from app.autenticacion.auth import LogoutView
 router = DefaultRouter()
 router.register(r"productos", ProductoViewSet)
 router.register(r"inventarios", InventarioViewSet)
