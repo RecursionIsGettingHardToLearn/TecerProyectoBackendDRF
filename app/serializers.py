@@ -256,3 +256,4 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
             return super().validate(attrs)
         except AuthenticationFailed:
             raise AuthenticationFailed("Usuario o contraseña incorrectos")
+        

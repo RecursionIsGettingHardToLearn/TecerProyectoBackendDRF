@@ -28,6 +28,8 @@ class CustomUser(AbstractUser):
 
     class Meta:
         db_table = 'customuser'
+    def __str__(self):
+        return f"{self.username} - {self.rol.nombre if self.rol else 'Sin rol'}"
 
 class Venta(models.Model):
     total = models.DecimalField(max_digits=10, decimal_places=2)

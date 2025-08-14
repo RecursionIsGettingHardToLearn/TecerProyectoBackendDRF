@@ -23,7 +23,7 @@ from .serializers import (
     CustomUserWriteSerializer,CustomUserReadSerializer, VentaSerializer, DetalleVentaSerializer,
     PedidoSerializer, DetallePedidoSerializer,
     FacturaSerializer, ReporteSerializer,
-    BitacoraSerializer, DetalleBitacoraSerializer,MyTokenObtainPairSerializer
+    BitacoraSerializer, DetalleBitacoraSerializer,MyTokenObtainPairSerializer,ChangePasswordSerializer
 )
 from .models import Bitacora,DetalleBitacora
 #permissions
@@ -165,17 +165,67 @@ class CustomUserViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
             )
         DetalleBitacora.objects.create(bitacora=bit,accion='CREAR_USUARIO',fecha=timezone.now(),
                                        tabla='Customuser')
-        #fin del registtro
-
         
         headers = self.get_success_headers(ser.data)
         return Response(ser.data, status=status.HTTP_201_CREATED, headers=headers)
-    def post(self, request):
-        serializer = self.get_serializer(request.user)
-        serializer.is_valid(raise_exception=True)
-        #--registro en tbitacora
-        #quiero registar a la tabla DetalleBitacora
+    @action(
+        detail=True,
+        methods=['post'],
+        url_path='set-password',
+        permission_classes=[IsAuthenticated,IsAdmin]  # cualquiera autenticado; la lógica de permisos la hace el serializer
+    )
+    def set_password(self, request, pk=None):
+        """
+        Cambia la contraseña del usuario objetivo.
+        Reglas:
+          - Si cambias TU propia contraseña: debes enviar current_password correcto.
+          - Si cambias la de OTRO: debes ser superuser (is_superuser).
+          - new_password != current_password y min 6 caracteres (lo valida el serializer).
+        Payload esperado:
+        {
+          "current_password": "opcional si admin, obligatorio si self",
+          "new_password": "*****",
+          "confirm_new_password": "*****"
+        }
+        """
+        target_user = self.get_object()
+        ser = ChangePasswordSerializer(
+            data=request.data,
+            context={"request": request, "user": target_user}
+        )
+        ser.is_valid(raise_exception=True)
 
+        # Si pasa validación, se setea la nueva contraseña
+        new_pwd = ser.validated_data["new_password"]
+        target_user.set_password(new_pwd)
+        target_user.save(update_fields=["password"])
+
+        # (Opcional) registrar en bitácora esta acción específica
+        try:
+            self._log(request, "CAMBIAR_PASSWORD", self._tabla())
+        except Exception:
+            pass
+
+        # 204 sin contenido (front solo necesita saber que fue OK)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    @action(
+        detail=False,
+        methods=['get'],
+        url_path='get-superadmins',
+        permission_classes=
+        [IsAuthenticated]
+    )
+    def get_superadmind(self ,request):
+        qs=CustomUser.objects.filter(is_superuser=True)
+        # Imprimir en logs la respuesta
+        ser = self.get_serializer(qs, many=True)#El many=True indica que hay varios objetos, no uno solo.
+        logger.info("Respuesta get_superadmind: %s", ser.data)
+        
+        try:
+            self._log(request, "LISTAR_SUPERADMINS", self._tabla())
+        except Exception:
+            pass
+        return Response(ser.data, status=status.HTTP_200_OK)
 
 class VentaViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
     queryset = Venta.objects.all()
