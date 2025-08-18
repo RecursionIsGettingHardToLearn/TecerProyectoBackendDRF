@@ -20,21 +20,11 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from ..models import Bitacora
 from django.utils import timezone
 User = get_user_model()
-def _get_client_ip(request):
-    # Si estás detrás de un proxy, usa X-Forwarded-For
-    xff = request.META.get('HTTP_X_FORWARDED_FOR')
-    if xff:
-        return xff.split(',')[0].strip()
-    return request.META.get('REMOTE_ADDR')
-
-
 class LogoutSerializer(serializers.Serializer):
     refresh = serializers.CharField()
-
     def validate(self, attrs):
         self.token = attrs['refresh']
         return attrs
-
     def save(self, **kwargs):
         RefreshToken(self.token).blacklist()
 #vistas
@@ -47,7 +37,6 @@ class LogoutSerializer(serializers.Serializer):
 
 """
 class LogoutView(APIView):
-
     permission_classes = [IsAuthenticated]
     def post(self, request):
     

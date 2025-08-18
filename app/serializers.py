@@ -24,8 +24,14 @@ class RolSerializer(serializers.ModelSerializer):
     class Meta:
         model = Rol
         fields  = ['id', 'nombre']
-
-#Read:para liststar/detalle 89 c
+    ''' 
+    def update(self, instance, validated_data):
+        if "nombre" in validated_data and validated_data["nombre"]!=instance.nombre:
+            raise serializers.ValidationError(
+                {"nombre":'no esta permitido moficiar esto'}
+            )
+        return super().update(instance, validated_data)
+'''
 class CustomUserReadSerializer(serializers.ModelSerializer):
     rol=RolSerializer()
     class Meta:

@@ -105,16 +105,18 @@ class BitacoraLoggerMixin:
 # === fin mixin ===
 class ProductoViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
     queryset = Producto.objects.all()
+    permission_classes = [IsAuthenticated]
     serializer_class = ProductoSerializer
 
 class InventarioViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
     queryset = Inventario.objects.all()
+    permission_classes = [IsAuthenticated]
     serializer_class = InventarioSerializer
 
 class RolViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
     queryset = Rol.objects.all()
     serializer_class = RolSerializer
-
+    permission_classes = [IsAuthenticated]
 class CustomUserViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     permission_classes = [IsAdmin,IsAuthenticated]
@@ -175,6 +177,7 @@ class CustomUserViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated,IsAdmin]  # cualquiera autenticado; la lógica de permisos la hace el serializer
     )
     def set_password(self, request, pk=None):
+        print("📥 Payload recibido en backend:", request.data)
         """
         Cambia la contraseña del usuario objetivo.
         Reglas:
@@ -189,6 +192,7 @@ class CustomUserViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
         }
         """
         target_user = self.get_object()
+        
         ser = ChangePasswordSerializer(
             data=request.data,
             context={"request": request, "user": target_user}
@@ -229,34 +233,42 @@ class CustomUserViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
 
 class VentaViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
     queryset = Venta.objects.all()
+    permission_classes = [IsAuthenticated]
     serializer_class = VentaSerializer
 
 class DetalleVentaViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
     queryset = DetalleVenta.objects.all()
+    permission_classes = [IsAuthenticated]
     serializer_class = DetalleVentaSerializer
 
 class PedidoViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
     queryset = Pedido.objects.all()
+    permission_classes = [IsAuthenticated]
     serializer_class = PedidoSerializer
 
 class DetallePedidoViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
     queryset = DetallePedido.objects.all()
+    permission_classes = [IsAuthenticated]
     serializer_class = DetallePedidoSerializer
 
 class FacturaViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
     queryset = Factura.objects.all()
+    permission_classes = [IsAuthenticated]
     serializer_class = FacturaSerializer
 
 class ReporteViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
     queryset = Reporte.objects.all()
+    permission_classes = [IsAuthenticated]
     serializer_class = ReporteSerializer
 
 class BitacoraViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
     queryset = Bitacora.objects.all()
+    permission_classes = [IsAuthenticated]
     serializer_class = BitacoraSerializer
 
 class DetalleBitacoraViewSet(BitacoraLoggerMixin,viewsets.ModelViewSet):
     queryset = DetalleBitacora.objects.all()
+    permission_classes = [IsAuthenticated]
     serializer_class = DetalleBitacoraSerializer
 
 
